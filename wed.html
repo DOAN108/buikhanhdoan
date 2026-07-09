@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dự báo thời tiết</title>
+  <meta name="description" content="Trang web dự báo thời tiết (demo). Nhập tên thành phố để hiển thị thời tiết theo thời gian thực (cần API key)." />
+
+  <style>
+    :root{
+      --bg:#0b1220;
+      --panel: rgba(18,26,45,.66);
+      --border: rgba(255,255,255,.12);
+      --text:#e8eefc;
+      --muted: #9aa7bd;
+      --brand:#6d5efc;
+      --brand2:#3b82f6;
+      --radius:16px;
+      --shadow: 0 14px 45px rgba(0,0,0,.25);
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background:
+        radial-gradient(900px 500px at 20% 0%, rgba(109,94,252,.25), transparent 60%),
+        radial-gradient(700px 400px at 80% 10%, rgba(59,130,246,.18), transparent 55%),
+        var(--bg);
+      color:var(--text);
+      min-height:100vh;
+      display:flex;
+      justify-content:center;
+      align-items:flex-start;
+      padding:22px 14px;
+    }
+
+    .wrap{ width:min(980px, 100%); display:grid; gap:14px; }
+
+    header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:14px 16px;
+      background: var(--panel);
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .brand{ display:flex; align-items:center; gap:10px; font-weight:1000; letter-spacing:.2px; }
+    .logo{
+      width:38px; height:38px; border-radius:12px;
+      background: linear-gradient(135deg, var(--brand), var(--brand2));
+      box-shadow: 0 0 0 1px rgba(255,255,255,.12) inset, 0 14px 40px rgba(109,94,252,.28);
+      display:flex; align-items:center; justify-content:center;
+    }
+    .meta{ color:var(--muted); font-weight:850; font-size:13px; text-align:right; }
+
+    .panel{
+      background: var(--panel);
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding:14px;
+      backdrop-filter: blur(10px);
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap:12px;
+    }
+    @media (max-width: 880px){
+      .grid{ grid-template-columns: 1fr; }
+    }
+
+    .controls{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    input[type="text"]{
+      flex: 1 1 240px;
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.05);
+      color:var(--text);
+      outline:none;
+    }
+    input[type="text"]::placeholder{ color: rgba(154,167,189,.8); }
+
+    button{
+      padding:10px 14px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.05);
+      color:var(--text);
+      font-weight:950;
+      cursor:pointer;
+      transition: transform .08s ease, border-color .2s ease, background .2s ease;
+      user-select:none;
+    }
+    button:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,.22); }
+    button.primary{
+      background: linear-gradient(135deg, rgba(109,94,252,.95), rgba(59,130,246,.70));
+      border-color: rgba(255,255,255,.14);
+    }
+
+    .row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .kpi{ display:flex; gap:10px; flex-wrap:wrap; }
+    .pill{
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.03);
+      border-radius: 999px;
+      padding:8px 12px;
+      display:flex; gap:8px; align-items:baseline;
+    }
+    .pill .lbl{ color:var(--muted); font-weight:900; font-size:12px; }
+    .pill .val{ font-size:14px; font-weight:1000; }
+
+    .card{
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.03);
+      border-radius: 18px;
+      padding:12px;
+    }
+
+    .weather-top{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+    }
+
+    .place{
+      display:flex; flex-direction:column; gap:4px;
+    }
+    .place .city{ font-size:20px; font-weight:1100; }
+    .place .sub{ color:var(--muted); font-weight:850; font-size:13px; }
+
+    .temp{
+      display:flex; align-items:center; gap:12px;
+      font-weight:1100;
+    }
+    .temp .big{ font-size:44px; line-height:1; }
+    .temp .unit{ color:var(--muted); font-weight:950; font-size:14px; }
+
+    .wx{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap:10px;
+      margin-top:12px;
+    }
+    @media (max-width: 520px){
+      .wx{ grid-template-columns: 1fr; }
+    }
+
+    .forecast{
+      display:grid;
+      grid-template-columns: repeat(4, minmax(0,1fr));
+      gap:10px;
+    }
+    @media (max-width: 880px){
+      .forecast{ grid-template-columns: repeat(2, minmax(0,1fr)); }
+    }
+
+    .fitem{ text-align:center; padding:10px; border-radius:16px; background: rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.10); }
+    .fitem .d{ font-weight:1000; }
+    .fitem .ico{ font-size:22px; }
+    .fitem .t{ font-weight:1100; margin-top:4px; }
+    .fitem .h{ color:var(--muted); font-weight:900; font-size:12px; margin-top:2px; }
+
+    .toast{
+      margin-top:10px;
+      color:var(--muted);
+      font-weight:900;
+      font-size:13px;
+      min-height:18px;
+    }
+
+    .sr-only{
+      position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden;
+      clip:rect(0,0,0,0); white-space:nowrap; border:0;
+    }
+
+    .hint{ color: var(--muted); font-weight:850; font-size:12px; line-height:1.6; }
+    .hint b{ color: var(--text); }
+
+    .sep{ height:1px; background: rgba(255,255,255,.10); margin:12px 0; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true">🌦️</div>
+        <div>Dự báo thời tiết</div>
+      </div>
+      <div class="meta">Nhập thành phố • (demo dùng OpenWeather)</div>
+    </header>
+
+    <section class="panel">
+      <div class="controls">
+        <input id="city" type="text" value="Hà Nội" placeholder="Ví dụ: Hà Nội, Đà Nẵng, Hồ Chí Minh..." aria-label="Tên thành phố" />
+        <button class="primary" id="btnGet" type="button">Lấy thời tiết</button>
+        <button id="btnUseLoc" type="button">Dùng vị trí hiện tại</button>
+      </div>
+
+      <div class="toast" id="status" aria-live="polite"></div>
+
+      <div class="sep"></div>
+
+      <div class="grid">
+        <div class="card">
+          <div class="weather-top">
+            <div class="place">
+              <div class="city" id="cityName">—</div>
+              <div class="sub" id="updatedAt">—</div>
+            </div>
+
+            <div class="temp" aria-label="Nhiệt độ">
+              <div class="big" id="temp">—</div>
+              <div class="unit">°C</div>
+              <div style="font-size:34px" id="weatherIcon" aria-hidden="true">—</div>
+            </div>
+          </div>
+
+          <div class="wx">
+            <div class="pill"><span class="lbl">Trạng thái</span><span class="val" id="desc">—</span></div>
+            <div class="pill"><span class="lbl">Cảm nhận</span><span class="val" id="feelsLike">—</span></div>
+            <div class="pill"><span class="lbl">Độ ẩm</span><span class="val" id="humidity">—</span></div>
+            <div class="pill"><span class="lbl">Gió</span><span class="val" id="wind">—</span></div>
+          </div>
+
+          <div class="sep"></div>
+
+          <div class="hint">
+            <div><b>Chú ý:</b> Để chạy “real-time”, bạn cần thêm <b>OPENWEATHER_API_KEY</b>.</div>
+            <div>Giữ nguyên file này trên máy, mở DevTools → thay key trong code ở biến <b>API_KEY</b>.</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div style="font-weight:1100">Dự báo gần</div>
+          <div class="hint" style="margin-top:4px">Hiển thị 4 mốc gần nhất (demo từ dữ liệu hiện có).</div>
+          <div style="margin-top:12px" class="forecast" id="forecast">
+            <!-- items -->
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+<script>
+(() => {
+  // =========================
+  // 1) API KEY (cần thiết)
+  // =========================
+  // Bạn có thể lấy key tại https://openweathermap.org/
+  // Gợi ý: đặt key vào biến này.
+  // Nếu để trống, trang sẽ hoạt động ở chế độ "demo giả lập".
+  const API_KEY = ""; // <-- dán API key vào đây
+
+  // =========================
+  // 2) Helpers
+  // =========================
+  const $ = (id) => document.getElementById(id);
+  const statusEl = $("status");
+
+  const cityInput = $("city");
+  const btnGet = $("btnGet");
+  const btnUseLoc = $("btnUseLoc");
+
+  const cityNameEl = $("cityName");
+  const updatedAtEl = $("updatedAt");
+  const tempEl = $("temp");
+  const iconEl = $("weatherIcon");
+  const descEl = $("desc");
+  const feelsLikeEl = $("feelsLike");
+  const humidityEl = $("humidity");
+  const windEl = $("wind");
+
+  const forecastEl = $("forecast");
+
+  function setStatus(msg){ statusEl.textContent = msg || ""; }
+
+  function weatherToIcon(code){
+    // code: OpenWeather condition id
+    if(code >= 200 && code < 300) return "⛈️"; // thunderstorm
+    if(code >= 300 && code < 600) return "🌧️"; // rain
+    if(code >= 600 && code < 700) return "🌨️"; // snow
+    if(code === 800) return "☀️";
+    if(code > 800 && code < 900) return "☁️";
+    return "🌦️";
+  }
+
+  function formatTimeFromUnix(ts){
+    try{
+      const d = new Date(ts * 1000);
+      return d.toLocaleString("vi-VN", { weekday: "short", hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" });
+    }catch{ return ""; }
+  }
+
+  function cToF(c){ return c * 9/5 + 32; }
+
+  function renderForecast(items){
+    forecastEl.innerHTML = "";
+    for(const it of items){
+      const node = document.createElement("div");
+      node.className = "fitem";
+      node.innerHTML = `
+        <div class="d">${it.day}</div>
+        <div class="ico" aria-hidden="true">${it.icon}</div>
+        <div class="t">${Math.round(it.temp)}°C</div>
+        <div class="h">${it.desc}</div>
+      `;
+      forecastEl.appendChild(node);
+    }
+  }
+
+  // =========================
+  // 3) Demo data fallback
+  // =========================
+  function fakeWeather(city){
+    const now = Date.now();
+    const base = 26 + (city.length % 7) - 3;
+    const pressure = 1010 + (city.length % 20);
+    const humidity = 55 + (city.length % 35);
+    const wind = 1.5 + (city.length % 10);
+
+    const conditionId = 802; // clouds
+    const icon = weatherToIcon(conditionId);
+
+    const temps = [base-1, base+0, base+2, base+1];
+    const descs = ["Nhiều mây", "Mát mẻ", "Nắng nhẹ", "Nhiều mây"];
+
+    const forecast = temps.map((t, i) => {
+      const d = new Date(now + i*6*60*60*1000);
+      const day = d.toLocaleDateString("vi-VN", { weekday: "short" });
+      return { day, temp: t, icon, desc: descs[i] };
+    });
+
+    return {
+      cityName: city,
+      updatedAt: new Date(now).toLocaleString("vi-VN"),
+      temp: base,
+      icon,
+      desc: "Nhiều mây",
+      feelsLike: base-1,
+      humidity,
+      wind: wind.toFixed(1) + " m/s",
+      forecast
+    };
+  }
+
+  function applyWeather(data){
+    cityNameEl.textContent = data.cityName;
+    updatedAtEl.textContent = data.updatedAt;
+    tempEl.textContent = Math.round(data.temp);
+    iconEl.textContent = data.icon;
+    descEl.textContent = data.desc;
+    feelsLikeEl.textContent = Math.round(data.feelsLike);
+    humidityEl.textContent = data.humidity + "%";
+    windEl.textContent = data.wind;
+    renderForecast(data.forecast);
+  }
+
+  // =========================
+  // 4) Fetch OpenWeather
+  // =========================
+  async function fetchWeatherByCity(city){
+    if(!API_KEY){
+      setStatus("Chạy chế độ demo (chưa có API key). Để thật: dán API key vào biến API_KEY.");
+      return fakeWeather(city);
+    }
+
+    // We use Current Weather API (basic) + create a small forecast-like strip
+    // For real 5-day forecast use /data/2.5/forecast.
+    const url = new URL("https://api.openweathermap.org/data/2.5/weather");
+    url.searchParams.set("q", city);
+    url.searchParams.set("appid", API_KEY);
+    url.searchParams.set("units", "metric");
+    url.searchParams.set("lang", "vi");
+
+    const res = await fetch(url.toString());
+    if(!res.ok){
+      const t = await res.text().catch(() => "");
+      throw new Error("Không lấy được dữ liệu. Kiểm tra tên thành phố/ API key. " + t);
+    }
+
+    const j = await res.json();
+
+    const cityName = j.name;
+    const updatedAt = formatTimeFromUnix(j.dt);
+    const temp = j.main.temp;
+    const feelsLike = j.main.feels_like;
+    const humidity = j.main.humidity;
+    const wind = (j.wind && j.wind.speed != null) ? (j.wind.speed + " m/s") : "—";
+
+    const conditionId = (j.weather && j.weather[0] && j.weather[0].id) ? j.weather[0].id : 0;
+    const icon = weatherToIcon(conditionId);
+    const desc = (j.weather && j.weather[0] && j.weather[0].description) ? j.weather[0].description : "—";
+
+    // Make pseudo forecast from current data (no extra calls to keep it simple)
+    const forecast = [0,1,2,3].map((i) => {
+      const d = new Date(Date.now() + i*6*60*60*1000);
+      const day = d.toLocaleDateString("vi-VN", { weekday: "short" });
+      const wobble = (i-1.5) * 0.9;
+      const t = temp + wobble;
+      const icon2 = icon;
+      const desc2 = i===0 ? "Sáng" : i===1 ? "Trưa" : i===2 ? "Chiều" : "Tối";
+      return { day, temp: t, icon: icon2, desc: desc2 };
+    });
+
+    return { cityName, updatedAt, temp, icon, desc, feelsLike, humidity, wind, forecast };
+  }
+
+  async function fetchWeatherByGeo(lat, lon){
+    if(!API_KEY){
+      setStatus("Chạy chế độ demo (chưa có API key). Bạn vẫn có thể xem layout.");
+      // Demo name by coordinates
+      return fakeWeather(`Vị trí (${lat.toFixed(2)}, ${lon.toFixed(2)})`);
+    }
+
+    const url = new URL("https://api.openweathermap.org/data/2.5/weather");
+    url.searchParams.set("lat", lat);
+    url.searchParams.set("lon", lon);
+    url.searchParams.set("appid", API_KEY);
+    url.searchParams.set("units", "metric");
+    url.searchParams.set("lang", "vi");
+
+    const res = await fetch(url.toString());
+    if(!res.ok){
+      const t = await res.text().catch(() => "");
+      throw new Error("Không lấy được dữ liệu. " + t);
+    }
+
+    const j = await res.json();
+
+    const cityName = j.name || "Vị trí";
+    const updatedAt = formatTimeFromUnix(j.dt);
+    const temp = j.main.temp;
+    const feelsLike = j.main.feels_like;
+    const humidity = j.main.humidity;
+    const wind = (j.wind && j.wind.speed != null) ? (j.wind.speed + " m/s") : "—";
+
+    const conditionId = (j.weather && j.weather[0] && j.weather[0].id) ? j.weather[0].id : 0;
+    const icon = weatherToIcon(conditionId);
+    const desc = (j.weather && j.weather[0] && j.weather[0].description) ? j.weather[0].description : "—";
+
+    const forecast = [0,1,2,3].map((i) => {
+      const d = new Date(Date.now() + i*6*60*60*1000);
+      const day = d.toLocaleDateString("vi-VN", { weekday: "short" });
+      const wobble = (i-1.5) * 0.9;
+      const t = temp + wobble;
+      const icon2 = icon;
+      const desc2 = i===0 ? "Sáng" : i===1 ? "Trưa" : i===2 ? "Chiều" : "Tối";
+      return { day, temp: t, icon: icon2, desc: desc2 };
+    });
+
+    return { cityName, updatedAt, temp, icon, desc, feelsLike, humidity, wind, forecast };
+  }
+
+  // =========================
+  // 5) Events
+  // =========================
+  btnGet.addEventListener("click", async () => {
+    const city = (cityInput.value || "").trim();
+    if(!city){ setStatus("Vui lòng nhập tên thành phố."); return; }
+    setStatus("Đang lấy dữ liệu...");
+    try{
+      const data = await fetchWeatherByCity(city);
+      applyWeather(data);
+      setStatus(API_KEY ? "Lấy dữ liệu thành công." : "Demo: hiển thị dữ liệu giả lập. Thêm API key để có thời tiết thật.");
+    }catch(err){
+      setStatus(String(err?.message || err));
+    }
+  });
+
+  btnUseLoc.addEventListener("click", async () => {
+    if(!navigator.geolocation){
+      setStatus("Trình duyệt không hỗ trợ Geolocation.");
+      return;
+    }
+    setStatus("Đang xin vị trí...");
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const { latitude, longitude } = pos.coords;
+      setStatus("Đang lấy dữ liệu theo vị trí...");
+      try{
+        const data = await fetchWeatherByGeo(latitude, longitude);
+        applyWeather(data);
+        setStatus(API_KEY ? "Lấy dữ liệu thành công." : "Demo: hiển thị dữ liệu giả lập. Thêm API key để có thời tiết thật.");
+      }catch(err){
+        setStatus(String(err?.message || err));
+      }
+    }, (err) => {
+      setStatus("Không lấy được vị trí: " + (err?.message || err));
+    }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 });
+  });
+
+  // Auto load
+  setStatus("Sẵn sàng. Nhấn “Lấy thời tiết”.");
+  // Render demo immediately
+  applyWeather(fakeWeather(cityInput.value.trim() || "Hà Nội"));
+
+})();
+</script>
+</body>
+</html>
+
